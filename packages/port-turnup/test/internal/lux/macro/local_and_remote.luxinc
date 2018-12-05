@@ -1,0 +1,40 @@
+#
+# Macros used for testing devices locally and remotely
+#
+
+#
+# Clean up temp file(s) and rollback logs
+#
+[macro clean_up_tmps tmp]
+    !rm -f $tmp
+    !rm -f ../../run/logs/rollback*
+[endmacro]
+
+#
+# Connect to a remote controller
+#
+[macro remote_connect uname addr tmp]
+    [progress 'connect to controller']
+    # if you are getting an error in this macro:
+    # make sure that the publickey of the testing computer is on the controller
+    # also ensure that the testing computer is connected to the VPN
+    !ssh $uname@$addr
+    !rm -f $tmp
+[endmacro]
+
+#
+# Disconnect from remote
+#
+[macro remote_disconnect]
+    [progress 'disconnect from controller']
+    !logout
+    ?Connection .* closed.
+[endmacro]
+
+#
+# Stop the ncs command line interface locally OR in a remote shell
+#
+[macro stop_ncs_cli_local_or_remote]
+    !exit
+    ?^\S*@.*\$ $|^SH-PROMPT:$
+[endmacro]

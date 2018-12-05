@@ -1,0 +1,143 @@
+#[include tu_generic.luxinc]
+
+#
+# Prep arista for test 11a
+#
+#[macro prep_t_11a_arista device]
+#    [invoke prep_tu_generic $device]
+#    !delete devices device $device config dcs:interface $IFC_LABEL $IFC
+#[endmacro]
+
+
+
+#
+# Generic Test set
+#
+[macro set_01 device]
+    !set services port-turnup $device $INTERFACE description $DESCRIPTION duplex $DUPLEX mtu $MTU port-type $PORT_TYPE st-mode $ST_MODE speed $SPEED vlan-id $VLAN_ID
+[endmacro]
+
+[macro set_02 device]
+    !set services port-turnup $device $INTERFACE description $DESCRIPTION speed $SPEED port-type $PORT_TYPE duplex $DUPLEX mtu $MTU vlan-id $VLAN_ID 
+[endmacro]
+
+[macro set_03 device]
+    [progress 'At set']
+    !set services port-turnup $device $INTERFACE description $DESCRIPTION speed $SPEED duplex $DUPLEX juniper-st-mode $JUNIPER_ST_MODE mtu $MTU port-type $PORT_TYPE vlan-id $VLAN_ID vlan-name $VLAN_NAME
+[endmacro]
+
+[macro output_arista device tmp]
+    !cat $tmp
+"""??
+native {
+    device {
+        name arista_0
+        data interface Ethernet1/1
+             description "portTurnUpService"
+             switchport access vlan 300
+             spanning-tree port type edge
+             mtu         1512
+             speed forced 100full
+             !
+    }
+}
+"""
+[endmacro]
+
+[macro output_ios device tmp]
+    !cat $tmp
+"""??
+native {
+    device {
+        name ios_0
+        data interface GigabitEthernet1/1
+              description "portTurnUpService"
+              switchport
+              switchport mode access
+              switchport access vlan 300
+              spanning-tree portfast
+              speed       100
+              duplex      full
+              mtu         1512
+              no shutdown
+             exit
+    }
+}
+"""
+[endmacro]
+
+[macro output_juniper device tmp]
+    !cat $tmp
+"""??
+cli {
+    local-node {
+        data  devices {
+                  device junos_0 {
+                      config {
+                          junos:configuration {
+                              interfaces {
+                                  interface xe-0/0/0 {
+             +                        apply-groups [ EDGE-BASE-10M-TX-OPTIONS ];
+             +                        description portTurnUpService;
+             +                        no-traps;
+             +                        mtu 1512;
+                                      unit 0 {
+                                          family {
+             +                                ethernet-switching {
+             +                                    port-mode access;
+             +                                    vlan {
+             +                                        members [ vlan ];
+             +                                    }
+             +                                }
+                                          }
+                                      }
+                                  }
+                              }
+                              protocols {
+                                  rstp {
+             +                        interface xe-0/0/0 {
+             +                            edge;
+             +                        }
+                                  }
+                              }
+                          }
+                      }
+                  }
+              }
+              services {
+             +    port-turnup junos_0 xe-0/0/0 {
+             +        description portTurnUpService;
+             +        speed 10;
+             +        duplex full;
+             +        mtu 1512;
+             +        port-type access-port;
+             +        juniper-st-mode edge;
+             +        vlan-id 300;
+             +        vlan-name [ vlan ];
+             +    }
+              }
+    }
+}
+"""
+[endmacro]
+
+[macro output_nx device tmp]
+    !cat $tmp
+"""??
+native {
+    device {
+        name nx_0
+        data tailfned default-lacp-suspend-individual true
+             interface Ethernet1/1
+              switchport mode access
+              switchport access vlan 300
+              description portTurnUpService
+              mtu         1512
+              spanning-tree port type edge
+              speed       100
+              duplex      full
+             exit
+    }
+}
+"""
+[endmacro]

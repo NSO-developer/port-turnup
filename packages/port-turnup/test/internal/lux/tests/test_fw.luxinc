@@ -1,0 +1,219 @@
+#
+# Framework for testing NCS services
+#
+# PLEASE NOTE: macros with the suffix _private should be called ONLY within this
+# framework file.
+#
+
+# for SSH
+[global REMOTE_UNAME=tailf]
+[global REMOTE_ADDR=10.251.110.90]
+
+#
+# Do a dry-run comparison test on one or more local devices
+#
+[macro do_test_local tmp devices prep_cb set_cb dry_run_cb expect_cb]
+
+    [timeout 120]
+    [loop device $devices]
+        [invoke do_test_private $tmp $device $prep_cb $set_cb $dry_run_cb $expect_cb]
+    [endloop]
+[endmacro]
+
+#
+# Do a dry-run comparison test on one or more remote devices
+#
+[macro do_test_remote tmp devices prep_cb set_cb dry_run_cb expect_cb]
+    [timeout 60]
+    [invoke remote_connect $REMOTE_UNAME $REMOTE_ADDR $tmp]
+    [loop device $devices]
+        [invoke do_test_private $tmp $device $prep_cb $set_cb $dry_run_cb $expect_cb]
+    [endloop]
+    [invoke remote_disconnect]
+[endmacro]
+
+#
+# A callback that does nothing if nothing is needed at a specific step
+#
+[macro no_prep device]
+[endmacro]
+
+#
+# Do only a sync-from (for one or multiple devices)
+#
+[macro sync_from_devices_private devices]
+    [progress 'start ncs_cli']
+    [invoke start_ncs_cli]
+
+    [progress 'sync device(s) for the test']
+    [loop device $devices]
+        !request devices sync-from device [ $device ]
+        ?result true
+    [endloop]
+
+    [invoke stop_ncs_cli_local_or_remote]
+[endmacro]
+
+[macro sync_from_devices_local devices]
+    [timeout 15]
+
+    [invoke sync_from_devices_private $devices]
+[endmacro]
+
+[macro sync_from_devices_remote devices]
+    [timeout 90]
+    [invoke remote_connect $REMOTE_UNAME $REMOTE_ADDR $tmp]
+    [invoke sync_from_devices_private $devices]
+    [invoke remote_disconnect]
+[endmacro]
+
+#
+# Basic test with cleanup and callback macros for prep, sets, type of dry run,
+# and verification (comparison of dry-run to expected)
+#
+[macro do_test_private tmp device prep_cb set_cb dry_run_cb comparison_cb]
+    [progress \n$device]
+
+    [invoke clean_up_tmps $tmp]
+
+    [progress 'start ncs_cli']
+    [invoke start_ncs_cli]
+    [invoke enter_configuration]
+
+    [progress 'prepare config for the test']
+    [invoke $prep_cb $device]
+    [invoke ok_commit_or_no_modification]
+
+    [progress 'set the test configuration']
+    [invoke $set_cb $device]
+
+    [progress 'create dry-run output']
+    [invoke $dry_run_cb $tmp]
+
+    [invoke exit_configuration_discard_changes]
+    [invoke stop_ncs_cli_local_or_remote]
+
+    # Verify results
+    [timeout 5]
+    [progress 'verify dry-run output for $device against $comparison_cb']
+    [invoke $comparison_cb $device $tmp]
+
+    [progress 'clean up']
+    [invoke start_ncs_cli]
+    [invoke enter_configuration]
+    [invoke exit_configuration]
+    [invoke stop_ncs_cli_local_or_remote]
+    [invoke clean_up_tmps $tmp]
+[endmacro]
+
+#
+# DO NOT USE THIS MACRO DIRECTLY (or any other macro with the suffix _private).
+# Instead, please use corresponding do_test_with_commit_local or _remote which
+# sets the proper timeout then calls this macro. 
+#
+# Basic test that does the following steps:
+#   1. Cleans up tmp file if it's still there (e.g. from a failed cleanup)
+#   2. Prepares config for the test by calling prep_cb
+#       a. set, but not commit, any preparation config, i.e. preconditions
+#           i.  this macro will take care of commits at the end of each stage
+#   3. Prepares config for dry run by calling set_cb
+#       a. set_cb should:
+#           i.  set, but not commit, the config being tested
+#   4. Creates a dry-run and compares it to expectations
+#       a. uses the format specified in dry_run_cb
+#           i.  this typically entails specifying `outformat native` or
+#               `outformat cli`
+#           ii. to do this, specify a prewritten macro from the file
+#               tests/lux/macro/macros.luxinc, either create_dry_run or
+#               create_dry_run_cli
+#       b. compares the created dry-run to the expected output saved in the file
+#          specified in the comparison_cb, which should do so by
+#           i.  using verify_dry_run from macros.luxinc
+#           ii. specifing the path to the expected output in the call to
+#               verify_dry_run
+#   5. Commits the test config
+#   6. Cleans up after itself by calling del_cb
+#       a. the programmer should be sure to delete all services they created in
+#          set_cb
+#       b. do_test_with_commit_private will do the commit of these deletes
+#
+[macro do_test_with_commit_private tmp device prep_cb set_cb dry_run_cb comparison_cb del_cb]
+
+[shell bash]
+    [invoke clean_up_tmps $tmp]
+
+[shell nso]
+    [progress 'start ncs_cli']
+    [invoke start_ncs_cli]
+    [invoke enter_configuration]
+
+    [progress 'prepare config for the test']
+    [invoke $prep_cb $device]
+    [invoke ok_commit_or_no_modification]
+
+    [progress 'set the test configuration']
+    [invoke $set_cb $device]
+
+    [progress 'create dry-run output']
+    [invoke $dry_run_cb $tmp]
+
+[shell bash]
+    # Verify results
+    [timeout 5]
+    [progress verify dry-run output for $device against $comparison_cb]
+    [invoke $comparison_cb $device $tmp]
+
+[shell nso]
+    [timeout 60]
+    [progress Dry run matched. Now commit the config]
+    [invoke ok_commit]
+
+    [progress .. Service commit successful. Now delete any config created in this test]
+    [invoke $del_cb $device]
+    [invoke ok_commit]
+
+    [invoke exit_configuration]
+    [invoke stop_ncs_cli_local_or_remote]
+
+    [progress clean up]
+    [invoke start_ncs_cli]
+    [invoke enter_configuration]
+    [invoke exit_configuration]
+    [invoke stop_ncs_cli_local_or_remote]
+    [invoke clean_up_tmps $tmp]
+[endmacro]
+
+#
+# Do a committed comparison test on one or more local devices
+#
+[macro do_test_with_commit_local tmp devices prep_cb set_cb dry_run_cb expect_cb del_cb]
+
+    [timeout 120]
+    [loop device $devices]
+        [invoke do_test_with_commit_private $tmp $device $prep_cb $set_cb $dry_run_cb $expect_cb $del_cb]
+    [endloop]
+[endmacro]
+
+#
+# Do a committed comparison test on one or more remote devices
+#
+[macro do_test_with_commit_remote tmp devices prep_cb set_cb dry_run_cb expect_cb del_cb]
+    [timeout 120]
+    [invoke remote_connect $REMOTE_UNAME $REMOTE_ADDR $tmp]
+    [loop device $devices]
+        [invoke do_test_with_commit_private $tmp $device $prep_cb $set_cb $dry_run_cb $expect_cb $del_cb]
+    [endloop]
+    [invoke remote_disconnect]
+[endmacro]
+
+[macro set_vlan device]
+    !set services dc-vlan $device vlan $VLAN_ID vlan-name $VLAN_NAME
+    !commit
+[endmacro]
+
+[macro copy_expected_results_to_remote]
+    [progress copy expected results to remote]
+    [timeout 60]
+    !scp -r expected-results/ $REMOTE_UNAME@$REMOTE_ADDR:~/
+    ?100%
+[endmacro]

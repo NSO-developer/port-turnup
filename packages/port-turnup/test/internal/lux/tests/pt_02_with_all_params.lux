@@ -1,0 +1,51 @@
+[include ../macro/macros.luxinc]
+[include ../macro/local_and_remote.luxinc]
+[include test_fw.luxinc]
+[include pt_macros/pt_02.luxinc]
+
+[doc Test CLI setting of all devices with all parameters and port_type as trunck port - local devices]
+
+
+# for verification
+[global tmp=test.txt]
+
+[shell sh]
+    [progress 'Pre-setup']
+    !hostname
+    ?(.*)
+    [global hahostname=$1]
+
+# Do the tests
+    [global IFC=1/1]
+    [global DESCRIPTION=portTurnUpService]
+    [global SPEED=100]
+    [global DUPLEX=full]
+    [global MTU=1512]
+    [global VLAN_ID=81-85,95]
+    [global ST_MODE=normal]
+    [global JUNIPER_ST_MODE=edge]
+    [global PORT_TYPE=trunk-port]
+
+    [progress sync-from the devices in this test]
+    [global DEVICES=arista_0 nx_0 ios_0 junos_0]
+    [invoke sync_from_devices_local $DEVICES]
+
+    [global DEVICES=arista_0]
+    [global IFC_LABEL=Ethernet]
+    [global INTERFACE=$IFC_LABEL$IFC]
+    [invoke do_test_local $tmp $DEVICES no_prep set_04 create_dry_run output_arista_01]
+
+    [global DEVICES=nx_0]
+    [invoke do_test_local $tmp $DEVICES no_prep set_04 create_dry_run output_nx_01]
+
+    [global DEVICES=ios_0]
+    [global IFC_LABEL=GigabitEthernet]
+    [global INTERFACE=$IFC_LABEL$IFC]
+    [invoke do_test_local $tmp $DEVICES no_prep set_05 create_dry_run output_ios_01]
+
+    [global DEVICES=junos_0]
+    [global INTERFACE=ge-0/0/1]
+    [global SPEED=10]
+    [global VLAN_NAME_01=vlan]
+    [global VLAN_NAME_02=vlan10]
+    [invoke do_test_local $tmp $DEVICES no_prep set_06 create_dry_run_cli output_juniper_01]

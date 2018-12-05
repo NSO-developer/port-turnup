@@ -1,0 +1,13 @@
+<ncs-package xmlns="http://tail-f.com/ns/ncs-packages">
+  <name>port-turnup</name>
+  <package-version>1.1</package-version>
+  <description>Python service package to configure physical ports on a router or switches</description>
+  <ncs-min-version>4.3.1</ncs-min-version>
+
+  <component>
+    <name>main</name>
+    <application>
+      <python-class-name>port_turnup.main.Main</python-class-name>
+    </application>
+  </component>
+</ncs-package>

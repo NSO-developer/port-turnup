@@ -1,0 +1,127 @@
+module port-turnup {
+  namespace "http://com/cisco/as/reusable/services/portturnup";  
+  prefix port-turnup;
+
+  import tailf-common {
+    prefix tailf;
+  }
+  import tailf-ncs {
+    prefix ncs;
+  }
+
+  organization "Cisco-AS";
+	
+  contact  "as-nso-service-packs@cisco.com"; 
+	
+  description  "Port Turn-up service YANG model";
+	
+  revision 2017-06-06 { 
+    description "First release of the port turn-up service";
+    reference "First version, ready for testing";
+  }
+
+  
+     
+  augment /ncs:services {
+
+    list port-turnup {
+      tailf:info "Port Turn-up service";
+      uses ncs:service-data;
+      ncs:servicepoint "port-turnup";
+
+      key "device interface";
+
+      leaf device {
+        type leafref {
+          path "/ncs:devices/ncs:device/ncs:name";
+        }
+      }
+      leaf interface {
+        tailf:info "interface identifier (format specific to device type)";
+        type string;
+      }
+      leaf description {
+        tailf:info "Description to be set on this port";
+        type string;
+      }
+      leaf speed {
+        tailf:info "Speed to be set on this port (in Mbps)";
+        type enumeration {
+          enum 10;      //  10M
+          enum 100;     // 100M
+          enum 1000;    //   1G
+          enum 10000;   //  10G
+          enum 40000;   //  40G
+          enum 100000;  // 100G
+        }
+      }
+      leaf duplex {
+     	tailf:info "Duplex to be set on this port";
+        type enumeration {
+          enum full;
+          enum half;
+        }	  
+      }
+      leaf mtu {
+     	tailf:info "MTU to be set on this port";
+        type uint32;  
+      }
+      
+      leaf port-type{
+        tailf:info "Specify the port_type(Access or Trunck port)";
+        type enumeration{
+          enum access-port;
+          enum trunk-port;
+        }
+        mandatory true;
+      }
+      
+      leaf juniper-st-mode{
+    	when "/ncs:devices/ncs:device[ncs:name=current()/../device]/ncs:device-type/ncs:netconf";
+        tailf:info "Juniper spanning tree mode";
+        type enumeration {
+          enum edge;      
+          enum disable;             
+        } 
+      }
+      
+      leaf st-mode{
+    	when "/ncs:devices/ncs:device[ncs:name=current()/../device]/ncs:device-type/ncs:cli/ncs:ned-id='cisco-nx-id:cisco-nx' or /ncs:devices/ncs:device[ncs:name=current()/../device]/ncs:device-type/ncs:cli/ncs:ned-id='arista-dcs-id:arista-dcs'";
+    	tailf:info "Spanning tree mode for Cisco-nx and Arista devices";
+        type enumeration {
+          enum edge;      
+          enum network;
+          enum normal;
+        } 	  
+      }
+
+      leaf vlan-id {
+        when "../port-type !='trunk-port'";
+        tailf:info "VLAN to be linked to this service";
+        type uint16{
+          range "1..4094";
+        }
+       }   
+
+      leaf-list vlan-ids {
+        when "../port-type='trunk-port'";
+        tailf:cli-drop-node-name;
+        tailf:cli-range-list-syntax;
+        type uint16 {
+          tailf:info "<1-4094>;;VLAN IDs of the allowed VLANs "
+           +"when this port is in trunking mode";
+           range "1..4094";
+        }
+      }
+
+
+      leaf-list vlan-name {
+    	when "/ncs:devices/ncs:device[ncs:name=current()/../device]/ncs:device-type/ncs:netconf";
+        tailf:info "Name for the VLAN linked to this service";
+        type string;
+        description "VLAN name used for this service";
+      }
+    }
+  }
+}
+

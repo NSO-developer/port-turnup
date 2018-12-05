@@ -1,0 +1,265 @@
+<config-template xmlns="http://tail-f.com/ns/config/1.0">
+  <devices xmlns="http://tail-f.com/ns/ncs">
+    <device>
+      <name>{device}</name>
+      <config>
+        <interface xmlns="http://tail-f.com/ned/arista-dcs">
+          <Ethernet when="{$INTERFACE-TYPE='Ethernet'}">
+            <name>{$INTID}</name>
+            <mtu>{mtu}</mtu>
+            <description when="{description}">{description}</description>
+            <switchport when="{port-type='access-port'}">
+              <access>
+                <vlan>{vlan-id}</vlan>
+              </access>
+            </switchport>
+            <switchport when="{port-type='trunk-port'}">
+              <trunk>
+                <allowed>
+                  <vlan>
+                   <ids>{vlan-ids}</ids>
+                  </vlan>
+                </allowed>
+              </trunk>
+            </switchport>
+            <spanning-tree>
+              <port>
+                <type>{st-mode}</type>
+              </port>
+            </spanning-tree>
+            <speed>
+              <forced>{speed}{duplex}</forced>
+            </speed>
+            <mtu>{mtu}</mtu>
+          </Ethernet>
+        </interface>
+        <interface xmlns="urn:ios">
+          <GigabitEthernet when="{$INTERFACE-TYPE='GigabitEthernet'}">
+            <name>{$INTID}</name>
+            <mtu>{mtu}</mtu>
+            <description when="{description}">{description}</description>
+            <switchport when="{vlan-id and port-type='access-port'}">
+              <mode>
+                <access />
+              </mode>
+              <access>
+                <vlan>{vlan-id}</vlan>
+              </access>
+            </switchport>
+            <switchport when="{port-type='trunk-port'}">
+              <trunk>
+                <allowed>
+                  <vlan>
+                    <vlans>{vlan-ids}</vlans>
+                  </vlan>
+                </allowed>
+              </trunk>
+            </switchport>
+            <spanning-tree>
+              <portfast>
+              </portfast>
+            </spanning-tree>
+            <speed>{speed}</speed>
+            <duplex>{duplex}</duplex>
+            <shutdown tags="delete" />
+          </GigabitEthernet>
+          <FastEthernet when="{$INTERFACE-TYPE='FastEthernet'}"> 
+            <name>{$INTID}</name> <mtu>{mtu}</mtu>
+            <description when="{description}">{description}</description>
+             <switchport when="{vlan-id and port-type='access-port'}">
+              <mode>
+                <access />
+              </mode>
+              <access>
+                <vlan>{vlan-id}</vlan>
+              </access>
+            </switchport>
+            <switchport when="{port-type='trunk-port'}">
+              <trunk>
+                <allowed>
+                  <vlan>
+                    <vlans>{vlan-ids}</vlans>
+                  </vlan>
+                </allowed>
+              </trunk>
+            </switchport>
+           <spanning-tree>
+             <portfast>
+             </portfast>
+           </spanning-tree>
+           <speed>{speed}</speed>
+           <duplex>{duplex}</duplex>
+          <shutdown tags="delete" />
+        </FastEthernet>
+        </interface> 
+
+         <interface xmlns="http://tail-f.com/ned/cisco-ios-xr">
+			     <TenGigE  when="{$INTERFACE-TYPE='TenGigE'}">
+             <id>{$INTID}</id>
+             <description when="{description}">{description}</description>
+             <mtu>{mtu}</mtu>
+             <shutdown tags="delete" />
+           </TenGigE>
+
+           	<TenGigE-subinterface when="{vlan-id and $INTERFACE-TYPE='TenGigE' and port-type='access-port'}">
+             <TenGigE>
+               <id>{$INTID}.{vlan-id}</id>
+               <mode>l2transport</mode>
+               <encapsulation>
+                 <untagged/>
+               </encapsulation>
+             </TenGigE>
+           </TenGigE-subinterface>
+
+
+           <TenGigE-subinterface when="{$INTERFACE-TYPE='TenGigE' and port-type='trunk-port'}">
+           	 <TenGigE>
+               <id>{$INTID}.{vlan-ids}</id>
+               <mode>l2transport</mode>
+               <encapsulation>
+                 <dot1q>
+                   <vlan-id>{.}</vlan-id>
+                 </dot1q>
+               </encapsulation>
+               <rewrite>
+                 <ingress>
+                   <tag>
+                     <pop>1</pop>
+                     <mode>symmetric</mode>
+                   </tag>
+                 </ingress>
+               </rewrite>
+             </TenGigE>
+           </TenGigE-subinterface>
+
+
+         <GigabitEthernet when="{$INTERFACE-TYPE='GigabitEthernet'}">
+             <id>{$INTID}</id>
+             <description when="{description}">{description}</description>
+             <mtu>{mtu}</mtu>
+             <shutdown tags="delete" />
+         </GigabitEthernet>
+           <GigabitEthernet-subinterface when="{vlan-id and $INTERFACE-TYPE='GigabitEthernet' and port-type='access-port'}">
+             <GigabitEthernet>
+               <id>{$INTID}.{vlan-id}</id>
+               <encapsulation>
+                 <untagged/>
+               </encapsulation>
+             </GigabitEthernet>
+           </GigabitEthernet-subinterface>
+
+           <GigabitEthernet-subinterface when="{$INTERFACE-TYPE='GigabitEthernet' and port-type='trunk-port'}">
+             <GigabitEthernet>
+               <id>{$INTID}.{vlan-ids}</id>
+               <encapsulation>
+                 <dot1q>
+                   <vlan-id>{vlan-ids}</vlan-id>
+                 </dot1q>
+               </encapsulation>
+               <rewrite>
+                 <ingress>
+                   <tag>
+                     <pop>1</pop>
+                     <mode>symmetric</mode>
+                   </tag>
+                 </ingress>
+               </rewrite>
+             </GigabitEthernet>
+           </GigabitEthernet-subinterface>
+
+         </interface>
+
+        <interface xmlns="http://tail-f.com/ned/cisco-nx">
+          <Ethernet when="{$INTERFACE-TYPE='Ethernet'}">
+            <name>{$INTID}</name>
+            <description when="{description}">{description}</description>
+            <mtu>{mtu}</mtu>
+             <speed>{speed}</speed>
+             <duplex>{duplex}</duplex>
+            <switchport when="{port-type='access-port'}">
+              <mode>access</mode>
+              <access>
+                <vlan>{vlan-id}</vlan>
+              </access>
+            </switchport>
+            <switchport  when="{port-type='trunk-port'}">
+              <mode>trunk</mode>
+                <trunk>
+                  <allowed>
+                    <vlan>
+                      <ids>{vlan-ids}</ids>
+                    </vlan>
+                  </allowed>
+                </trunk>
+              </switchport>
+              <spanning-tree>
+                <port>
+                  <type>{st-mode}</type>
+                </port>
+              </spanning-tree>
+          </Ethernet>
+        </interface>
+        <configuration xmlns="http://xml.juniper.net/xnm/1.1/xnm">
+          <interfaces when="{port-type='access-port'}">
+            <interface>
+              <name>{interface}</name>
+              <description when="{description}">{description}</description>
+              <no-traps />
+              <unit>
+                <name>0</name>
+                <family>
+                  <ethernet-switching>
+                    <vlan>
+                      <members>{vlan-name}</members>
+                    </vlan>
+                    <port-mode>access</port-mode>
+                  </ethernet-switching>
+                </family>
+              </unit>
+              <mtu>{mtu}</mtu>
+              <apply-groups when="{speed='10' and duplex ='full'}">EDGE-BASE-10M-TX-OPTIONS</apply-groups> 
+              <apply-groups when="{speed='10' and duplex ='half'}">EDGE-BASE-10M-HALF-TX-OPTIONS</apply-groups>
+              <apply-groups when="{speed='100' and duplex ='full'}">EDGE-BASE-1GE-TX-100M-OPTIONS</apply-groups>
+              <apply-groups when="{speed='1000' and duplex ='full'}">EDGE-BASE-1GE-TX-OPTIONS</apply-groups>
+            </interface>
+          </interfaces>
+          <interfaces when="{port-type='trunk-port'}">
+            <interface>
+              <name>{interface}</name>
+              <description when="{description}">{description}</description>
+              <no-traps />
+              <unit>
+                <name>0</name>
+                <family>
+                  <ethernet-switching>
+                    <vlan>
+                      <members>{vlan-name}</members>
+                    </vlan>
+                    <port-mode>trunk</port-mode>
+                  </ethernet-switching>
+                </family>
+              </unit>
+              <mtu>{mtu}</mtu>
+              <apply-groups when="{speed='10' and duplex ='full'}">EDGE-BASE-10M-TX-OPTIONS</apply-groups> 
+              <apply-groups when="{speed='10' and duplex ='half'}">EDGE-BASE-10M-HALF-TX-OPTIONS</apply-groups>
+              <apply-groups when="{speed='100' and duplex ='full'}">EDGE-BASE-1GE-TX-100M-OPTIONS</apply-groups>
+              <apply-groups when="{speed='1000' and duplex ='full'}">EDGE-BASE-1GE-TX-OPTIONS</apply-groups>
+            </interface>
+          </interfaces>
+          <protocols>
+            <rstp>
+              <interface when="{juniper-st-mode='edge'}">
+                <name>{interface}</name>
+                <edge/>
+              </interface>
+              <interface when="{juniper-st-mode='disable'}">
+                <name>{interface}</name>
+                <disable/>
+              </interface>
+            </rstp>
+          </protocols>
+        </configuration>  
+      </config>
+    </device>
+  </devices>
+</config-template>

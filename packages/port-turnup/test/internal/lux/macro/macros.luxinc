@@ -1,0 +1,219 @@
+###########################################################################
+# global varibales
+###########################################################################
+[global NCS_PROMPT_BASE=NCS-PROMPT]
+[global NCS_PROMPT=${NCS_PROMPT_BASE}>]
+[global NCS_CFG_PROMPT=${NCS_PROMPT_BASE}:]
+
+#
+# Turn off echo for the terminal
+#
+[macro echo_off]
+	!stty -echo
+	?SH-PROMPT:
+[endmacro]
+
+
+#
+# Turn on echo for the terminal
+#
+[macro echo_on]
+	!stty echo
+	?SH-PROMPT:
+[endmacro]
+
+
+#
+# Start ncs command line interface
+#
+[macro start_ncs_cli]
+	!ncs_cli -u admin
+	?ncs_cli.*$
+	?admin@ncs>
+	!set prompt1 NCS-PROMPT>
+	?set prompt1 NCS-PROMPT>
+	?^NCS-PROMPT>
+	!set prompt2 NCS-PROMPT:
+	?set prompt2 NCS-PROMPT:
+	?$NCS_PROMPT
+	!set paginate false
+	?\[ok\]
+	?$NCS_PROMPT
+[endmacro]
+
+
+#
+# Stop the ncs command line interface
+#
+[macro stop_ncs_cli]
+	!exit
+	?^SH-PROMPT:
+[endmacro]
+
+
+#
+# Enter configuration mode
+#
+[macro enter_configuration]
+	!configure
+	?configure
+	?$NCS_CFG_PROMPT
+[endmacro]
+
+
+#
+# Exit configuration mode
+#
+[macro exit_configuration]
+	!exit
+	?exit
+	?$NCS_PROMPT
+[endmacro]
+
+#
+# Exit configuration mode with change discard
+#
+[macro exit_configuration_discard_changes]
+	!exit
+	!yes
+	?$NCS_PROMPT
+[endmacro]
+
+#
+# Removes all rollback files
+#
+[macro clear_rollback]
+	!rm -f ../../run/logs/rollback*
+	?^SH-PROMPT:
+[endmacro]
+
+#
+# Verify that no new error logs where created
+#
+[macro verify_no_error_logs]
+	#[timeout 5]
+	#!../error-logs-count.sh ncs.log
+	#?0
+	#?^SH-PROMPT:
+	#!../error-logs-count.sh ncs-java-vm.log
+	#?0
+	#?^SH-PROMPT:
+	#!../error-logs-count.sh devel.log
+	#?0
+	#?^SH-PROMPT:
+	#!ls ../../run/logs/ncserr*
+	#?.*No such file or directory
+	#?^SH-PROMPT:
+[endmacro]
+
+#
+# Do a commit and check it was completed without any exception
+#
+[macro ok_commit]
+    -Exception
+    !commit
+    ?Commit complete.
+    -
+    ?$NCS_CFG_PROMPT
+[endmacro]
+
+#
+# Do a commit waith a label and check it was completed without any exception
+#
+[macro ok_commit_with_label label]
+    -Exception
+    !commit label $label
+    ?Commit complete.
+    -
+    ?$NCS_CFG_PROMPT
+[endmacro]
+
+#
+# Do a commit and check it was completed without any exception
+#
+[macro ok_commit_or_no_modification]
+    -Exception
+    !commit
+    ?Commit complete.|No modifications to commit.
+    -
+    ?$NCS_CFG_PROMPT
+[endmacro]
+
+#
+# Do a commit dry-run and check it was completed without any exception
+# (Look for a "}" in the output or No modifications ...
+[macro ok_commit_dry_run]
+    -Exception
+    !commit dry-run
+    ?}+|No modifications to commit.
+    -
+    ?$NCS_CFG_PROMPT
+[endmacro]
+
+#
+# Do a commit dry-run with template debug and check it was completed without any exception
+# (Look for a "}" in the output or No modifications ...
+[macro ok_commit_dry_run_debug_template]
+    -Exception
+    !commit dry-run | debug template
+    ?}+|No modifications to commit.
+    -
+    ?$NCS_CFG_PROMPT
+[endmacro]
+
+#                          
+# Do a commit and expect an Aborted for negative tests 
+#                       
+[macro aborted_commit]
+    !commit
+    ?Aborted:
+    -
+    ?$NCS_CFG_PROMPT
+[endmacro]
+
+
+#
+# Save dry-run to file $tmp
+#
+[macro create_dry_run tmp]
+    ?$NCS_CFG_PROMPT
+    !commit dry-run outformat native | save $tmp
+    """?
+    .*commit dry-run outformat native \| save $tmp
+    \[ok\].*
+    """
+[endmacro]
+
+#
+# Save CLI dry-run to file $tmp
+#
+[macro create_dry_run_cli tmp]
+    ?$NCS_CFG_PROMPT
+    !commit dry-run outformat cli | save $tmp
+"""??
+commit dry-run outformat cli | save $tmp
+"""
+[endmacro]
+
+#
+# Verify dry-run file $tmp with file $expected
+#
+[macro verify_dry_run expected tmp]
+    !diff -s expected-results/$expected $tmp
+    ?Files expected-results/$expected and $tmp are identical
+    !rm -f $tmp
+[endmacro]
+
+#
+# Stop the test run at this point so that debugging can happen
+#
+[macro debug_stop]
+    !stop
+    ?true
+[endmacro]
+
+[macro wait_for_prompt prompt]
+    ??$prompt
+    !$_LF_
+    ??$prompt
+[endmacro]

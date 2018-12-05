@@ -1,0 +1,44 @@
+#
+# Common macros for lux tests
+#
+
+#
+# Save show services for a specific service to file $tmp
+#
+[macro save_service_output service tmp]
+    !show services $service | save $tmp
+    """?
+    .*show services $service \| save $tmp
+    \[ok\].*
+    """
+[endmacro]
+
+#
+# Save show devices for a specific device path to file $tmp
+#
+[macro save_device_output device_path tmp]
+    !show devices device $device_path | save $tmp
+    """?
+    .*\[ok\].*
+    """
+[endmacro]
+
+#
+# Verify saved file $tmp with file $expected
+# This macro aliases verify_dry_run from macros.luxinc to make it more intuitive
+# that the comparison doesn't have to of a dry run. But it still does the same
+# thing with diff -s.
+#
+[macro verify_saved_output expected tmp]
+    [invoke verify_dry_run $expected $tmp]
+[endmacro]
+
+#
+# Specific cleanup
+#
+[macro pre_test_cleanup device interface]
+    !run request devices sync-from
+    !delete services dc-portturnup
+    !delete services dc-vlan
+    !delete devices device $device config ios:interface $interface
+[endmacro]

@@ -1,0 +1,126 @@
+#
+# Generic Test set
+#
+[macro set_04 device]
+    !set services port-turnup $device $INTERFACE description $DESCRIPTION duplex $DUPLEX port-type $PORT_TYPE mtu $MTU speed $SPEED st-mode $ST_MODE vlan-ids $VLAN_ID
+[endmacro]
+
+[macro set_05 device]
+    !set services port-turnup $device $INTERFACE description $DESCRIPTION duplex $DUPLEX mtu $MTU port-type $PORT_TYPE speed $SPEED vlan-ids $VLAN_ID 
+[endmacro]
+
+[macro set_06 device]
+    !set services port-turnup $device $INTERFACE description $DESCRIPTION duplex $DUPLEX juniper-st-mode $JUNIPER_ST_MODE mtu $MTU port-type $PORT_TYPE vlan-name $VLAN_NAME_01
+    !set services port-turnup $device $INTERFACE description $DESCRIPTION duplex $DUPLEX juniper-st-mode $JUNIPER_ST_MODE mtu $MTU port-type $PORT_TYPE vlan-name $VLAN_NAME_02
+[endmacro]
+
+[macro output_arista_01 device tmp]
+    !cat $tmp
+"""??
+native {
+    device {
+        name arista_0
+        data interface Ethernet1/1
+             description "portTurnUpService"
+             switchport trunk allowed vlan 81-85,95
+             spanning-tree port type normal
+             mtu         1512
+             speed forced 100full
+             !
+    }
+}
+"""
+[endmacro]
+
+[macro output_ios_01 device tmp]
+    !cat $tmp
+"""??
+native {
+    device {
+        name ios_0
+        data interface GigabitEthernet1/1
+              description "portTurnUpService"
+              switchport
+              switchport trunk allowed vlan 81-85,95
+              spanning-tree portfast
+              speed       100
+              duplex      full
+              mtu         1512
+              no shutdown
+             exit
+    }
+}
+"""
+[endmacro]
+
+[macro output_juniper_01 device tmp]
+    !cat $tmp
+"""??
+cli {
+    local-node {
+        data  devices {
+                  device junos_0 {
+                      config {
+                          junos:configuration {
+                              interfaces {
+             +                    interface ge-0/0/1 {
+             +                        description portTurnUpService;
+             +                        no-traps;
+             +                        mtu 1512;
+             +                        unit 0 {
+             +                            family {
+             +                                ethernet-switching {
+             +                                    port-mode trunk;
+             +                                    vlan {
+             +                                        members [ vlan vlan10 ];
+             +                                    }
+             +                                }
+             +                            }
+             +                        }
+             +                    }
+                              }
+                              protocols {
+                                  rstp {
+             +                        interface ge-0/0/1 {
+             +                            edge;
+             +                        }
+                                  }
+                              }
+                          }
+                      }
+                  }
+              }
+              services {
+             +    port-turnup junos_0 ge-0/0/1 {
+             +        description portTurnUpService;
+             +        duplex full;
+             +        mtu 1512;
+             +        port-type trunk-port;
+             +        juniper-st-mode edge;
+             +        vlan-name [ vlan vlan10 ];
+             +    }
+              }
+    }
+}
+"""
+[endmacro]
+
+[macro output_nx_01 device tmp]
+    !cat $tmp
+"""??
+native {
+    device {
+        name nx_0
+        data tailfned default-lacp-suspend-individual true
+             interface Ethernet1/1
+              switchport trunk allowed vlan 81-85,95
+              description portTurnUpService
+              mtu         1512
+              spanning-tree port type normal
+              speed       100
+              duplex      full
+             exit
+    }
+}
+"""
+[endmacro]
